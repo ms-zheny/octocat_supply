@@ -7,6 +7,8 @@ import Products from './components/entity/product/Products';
 import Login from './components/Login';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { CartProvider } from './context/CartContext';
+import CartDrawer from './components/entity/cart/CartDrawer';
 import AdminProducts from './components/admin/AdminProducts';
 import { useTheme } from './context/ThemeContext';
 
@@ -20,6 +22,7 @@ function ThemedApp() {
         className={`flex flex-col min-h-screen ${darkMode ? 'bg-dark' : 'bg-gray-100'} transition-colors duration-300`}
       >
         <Navigation />
+        <CartDrawer />
         <main className="flex-grow">
           <Routes>
             <Route path="/" element={<Welcome />} />
@@ -39,7 +42,9 @@ function App() {
   return (
     <AuthProvider>
       <ThemeProvider>
-        <ThemedApp />
+        <CartProvider>
+          <ThemedApp />
+        </CartProvider>
       </ThemeProvider>
     </AuthProvider>
   );
