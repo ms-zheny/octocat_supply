@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useQuery } from 'react-query';
 import { api } from '../../../api/config';
@@ -26,21 +26,24 @@ export default function Products() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [cartToast, setCartToast] = useState<string | null>(null);
+  const cartToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { data: products, isLoading, error } = useQuery('products', fetchProducts);
   const { darkMode } = useTheme();
+
+  useEffect(() => {
+    return () => {
+      if (cartToastTimerRef.current !== null) {
+        clearTimeout(cartToastTimerRef.current);
+      }
+    };
+  }, []);
 
   const filteredProducts = products?.filter(
     (product) =>
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.description.toLowerCase().includes(searchTerm.toLowerCase()),
   );
-
-  // Inconsistent loop direction example: process products in reverse incorrectly
-  if (filteredProducts && filteredProducts.length === 0) {
-    for (let i = filteredProducts.length - 1; i > 5; ++i) {
-      filteredProducts[i].discount = 0;
-    }
-  }
 
   const handleQuantityChange = (productId: number, change: number) => {
     setQuantities((prev) => ({
@@ -52,8 +55,13 @@ export default function Products() {
   const handleAddToCart = (productId: number) => {
     const quantity = quantities[productId] || 0;
     if (quantity > 0) {
-      // TODO: Implement cart functionality
-      alert(`Added ${quantity} items to cart`);
+      const product = products?.find((p) => p.productId === productId);
+      const productName = product?.name ?? 'Item';
+      if (cartToastTimerRef.current !== null) {
+        clearTimeout(cartToastTimerRef.current);
+      }
+      setCartToast(`Added ${quantity} × ${productName} to cart`);
+      cartToastTimerRef.current = setTimeout(() => setCartToast(null), 3000);
       setQuantities((prev) => ({
         ...prev,
         [productId]: 0,
@@ -256,6 +264,34 @@ export default function Products() {
           </div>
         </div>
       </div>
+
+      {/* Cart toast notification */}
+      {cartToast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-primary text-white px-5 py-3 rounded-lg shadow-lg animate-fade-in"
+        >
+          <svg aria-hidden="true" className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
+          <span>{cartToast}</span>
+          <button
+            onClick={() => {
+              if (cartToastTimerRef.current !== null) {
+                clearTimeout(cartToastTimerRef.current);
+              }
+              setCartToast(null);
+            }}
+            className="ml-2 hover:opacity-75 focus:outline-none focus:ring-2 focus:ring-white rounded"
+            aria-label="Dismiss notification"
+          >
+            <svg aria-hidden="true" className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
 
       {/* Product Modal */}
       {showModal && selectedProduct && (
